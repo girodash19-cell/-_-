@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ж/Д билеты</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, Arial, sans-serif;
+        background: #0b1220;
+        color: #e8eefc;
+        line-height: 1.5;
+      }
+      .line { display: flex; justify-content: space-between; gap: 12px; }
+      .line .k { color: #a9b7df; }
+      .line .v { font-weight: 600; text-align: right; }
+
+      .date-btn-wrap { position: relative; display: inline-block; }
+      .date-btn-wrap .date-input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        pointer-events: none;
+        border: 0;
+        padding: 0;
+      }
+
+      .wrap { max-width: 720px; margin: 0 auto; padding: 28px 16px 60px; }
+      h1 { margin: 0 0 16px; font-size: 22px; }
+
+      .card {
+        background: #111a2e;
+        border: 1px solid #223054;
+        border-radius: 14px;
+        padding: 16px;
+        margin: 12px 0;
+      }
+
+      fieldset {
+        border: 1px solid #223054;
+        border-radius: 12px;
+        padding: 10px 14px 14px;
+        margin: 14px 0 0;
+      }
+      legend { padding: 0 6px; color: #a9b7df; font-size: 13px; }
+
+      .field { display: block; margin-top: 12px; font-size: 14px; color: #a9b7df; }
+
+      .input,
+      .select {
+        width: 100%;
+        margin-top: 6px;
+        padding: 9px 10px;
+        border: 1px solid #223054;
+        border-radius: 10px;
+        background: #0f172a;
+        color: #e8eefc;
+        font: inherit;
+      }
+      .select { padding: 6px; }
+
+      .checks label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 8px 0;
+        cursor: pointer;
+      }
+
+      .date-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+
+      .btn {
+        padding: 9px 16px;
+        border: 1px solid #223054;
+        border-radius: 10px;
+        background: #1b2b4d;
+        color: #e8eefc;
+        font: inherit;
+        cursor: pointer;
+      }
+      .btn:hover { background: #24406e; }
+
+      .date-text { color: #a9b7df; font-size: 14px; }
+
+      .summary { display: grid; gap: 6px; font-size: 15px; }
+      .summary b { color: #a9b7df; font-weight: 500; }
+
+      .total {
+        margin-top: 6px;
+        padding-top: 8px;
+        border-top: 1px dashed #223054;
+        font-size: 17px;
+      }
+
+      :root {
+        --bg: #0b1220;
+        --card: #111a2e;
+        --border: #223054;
+        --muted: #a9b7df;
+        --text: #e8eefc;
+        --accent: #6aa7ff;
+      }
+
+      .actionsRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .btnPrimary { background: #24406e; border-color: #3b5a8f; }
+      .btnPrimary:hover { background: #2f5288; }
+      .btnSmall { padding: 7px 12px; font-size: 13px; }
+
+      .errText { display: none; margin-top: 8px; color: #ff8f8f; font-size: 13px; }
+      .errText.show { display: block; }
+
+      .ticketTitle { font-size: 16px; font-weight: 700; }
+      .ticketId { color: var(--muted); font-size: 13px; margin-top: 4px; }
+      .dateValue { color: var(--muted); font-size: 13px; }
+
+      .ticketWrap { display: grid; gap: 12px; }
+      .ticket {
+        background: rgba(9, 14, 28, 0.55);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        display: grid;
+        gap: 8px;
+      }
+      .ticket > div {
+        font-size: 14px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        background: rgba(17, 26, 46, 0.6);
+        border: 1px solid var(--border);
+      }
+      .sideBtns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .app { width: min(1120px, 100%); }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 14px;
+        align-items: start;
+      }
+      @media (max-width: 980px) {
+        .layout { grid-template-columns: 1fr; }
+      }
+      .leftCol, .rightCol { display: grid; gap: 14px; }
+
+      table { width: 100%; border-collapse: collapse; }
+      th, td {
+        text-align: left;
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+        font-size: 13px;
+      }
+      th { color: var(--muted); font-weight: 600; }
+
+      .groupRow td {
+        padding-top: 14px;
+        color: var(--text);
+        font-weight: 700;
+        border-bottom: 1px solid color-mix(in oklab, var(--border) 55%, transparent 45%);
+      }
+
+      .tableHint {
+        margin: 0 0 10px;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+
+      .cityBtn {
+        border: 1px solid var(--border);
+        background: rgba(9, 14, 28, 0.35);
+        color: var(--text);
+        padding: 6px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        font: inherit;
+        line-height: 1.2;
+        transition: border-color 140ms ease, box-shadow 140ms ease;
+      }
+      .cityBtn:hover {
+        border-color: color-mix(in oklab, var(--accent) 55%, var(--border) 45%);
+      }
+      .cityBtn:focus-visible {
+        outline: none;
+        border-color: color-mix(in oklab, var(--accent) 70%, white 30%);
+        box-shadow: 0 0 0 3px rgba(106, 167, 255, 0.18);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+      }
+
+      .wrap {
+        width: min(980px, 100%);
+        margin: 0 auto;
+        padding: 28px 16px 60px;
+      }
+
+      .top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+
+      h1 { margin: 0; font-size: 22px; }
+
+      .muted { color: var(--muted); }
+
+      .link {
+        color: var(--accent);
+        text-decoration: none;
+        border-bottom: 1px dashed color-mix(in oklab, var(--accent) 65%, transparent 35%);
+      }
+
+      .card {
+        background: color-mix(in oklab, var(--card) 92%, black 8%);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        margin: 12px 0;
+      }
+
+      h2 { margin: 0 0 10px; font-size: 16px; }
+      h3 { margin: 14px 0 8px; font-size: 14px; }
+      p { margin: 10px 0; }
+
+      ul, ol { margin: 8px 0 0; padding-left: 20px; }
+      li { margin: 6px 0; }
+
+      code, pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      pre {
+        margin: 10px 0;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: auto;
+        background: rgba(9, 14, 28, 0.55);
+        color: var(--text);
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(106, 167, 255, 0.1);
+        font-size: 12px;
+        margin-left: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Ж/Д билеты</h1>
+
+      <div class="layout">
+        <div class="leftCol">
+
+          <div class="card">
+            <form class="form">
+              <label class="field">
+                Город отправления
+                <input class="input from" type="text" placeholder="Например: Москва" />
+              </label>
+
+              <label class="field">
+                Город прибытия
+                <input class="input to" type="text" placeholder="Например: Санкт‑Петербург" />
+              </label>
+
+              <label class="field">
+                Тип вагона (listbox)
+                <select class="select wagon" size="3">
+                  <option value="1" data-name="Плацкарт" selected>Плацкарт (по умолчанию)</option>
+                  <option value="1.1" data-name="Купе">Купе (+10%)</option>
+                  <option value="1.2" data-name="СВ">СВ (+20%)</option>
+                </select>
+              </label>
+
+              <fieldset>
+                <legend>Доп. услуги</legend>
+                <div class="checks">
+                  <label><input class="service" type="checkbox" data-price="5" data-name="Чай/кофе" /> Чай/кофе — 5 ₽</label>
+                  <label><input class="service" type="checkbox" data-price="3" data-name="Бельё" /> Бельё — 3 ₽</label>
+                </div>
+              </fieldset>
+
+              <div class="date-row">
+                <div class="date-btn-wrap">
+                  <button type="button" class="btn" id="dateBtn">Выбрать дату</button>
+                  <input class="date-input" type="date" />
+                </div>
+                <span class="date-text">не выбрана</span>
+              </div>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="summary">
+              <div><b>Маршрут:</b> <span class="out-route">—</span></div>
+
+              <div class="line">
+                <div class="k">Расстояние (по прямой)</div>
+                <div class="v" id="outDistance">—</div>
+              </div>
+
+              <div class="line">
+                <div class="k">Базовая цена</div>
+                <div class="v" id="outBase">—</div>
+              </div>
+
+              <div><b>Тип вагона:</b> <span class="out-wagon">—</span></div>
+              <div><b>Услуги:</b> <span class="out-services">—</span></div>
+              <div><b>Дата:</b> <span class="out-date">—</span></div>
+              <div class="total"><b>Итого:</b> <span class="out-total">—</span></div>
+
+              <div class="actionsRow" style="margin-top: 10px">
+                <button id="payBtn" class="btn btnPrimary" type="button">Оплатить</button>
+                <span class="dateValue">После оплаты появится билет</span>
+              </div>
+
+              <div id="payError" class="errText">Заполни “Откуда”, “Куда” и выбери дату.</div>
+
+              <div id="ticketSection" class="card" hidden>
+                <div class="actionsRow">
+                  <div>
+                    <div class="ticketTitle">Ваш билет</div>
+                    <div class="ticketId" id="ticketId">—</div>
+                  </div>
+                  <div class="dateValue" id="ticketPaidAt">—</div>
+                </div>
+
+                <div class="ticketWrap" style="margin-top: 12px">
+                  <div class="ticket" id="ticketNode">
+                    <div id="tRoute">—</div>
+                    <div id="tDate">—</div>
+                    <div id="tWagon">—</div>
+                    <div id="tDistance">—</div>
+                    <div id="tPrice">—</div>
+                    <div id="tServices">—</div>
+                  </div>
+
+                  <div class="sideBtns">
+                    <button id="savePngBtn" class="btn btnSmall" type="button">Сохранить как PNG</button>
+                    <button id="saveTxtBtn" class="btn btnSmall" type="button">Сохранить как TXT</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="rightCol">
+
+          <div class="card">
+            <p class="tableHint">
+              Таблица расстояний считается от Минска (по прямой). Нажми на город, чтобы подставить его в «Куда».
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Город</th>
+                  <th>Страна</th>
+                  <th>км</th>
+                </tr>
+              </thead>
+              <tbody id="distBody"></tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const BASE_PRICE          = 1000;
+      const BASE_PRICE_FALLBACK = 100;
+      const RATE_PER_KM         = 0.25;
+      const MIN_BASE_PRICE      = 50;
+
+      const form       = document.querySelector(".form");
+      const fromInput  = document.querySelector(".from");
+      const toInput    = document.querySelector(".to");
+      const wagon      = document.querySelector(".wagon");
+      const services   = document.querySelectorAll(".service");
+
+      const dateInput  = document.querySelector(".date-input");
+      const dateText   = document.querySelector(".date-text");
+
+      const outRoute    = document.querySelector(".out-route");
+      const outWagon    = document.querySelector(".out-wagon");
+      const outServices = document.querySelector(".out-services");
+      const outDate     = document.querySelector(".out-date");
+      const outTotal    = document.querySelector(".out-total");
+
+      const els = {
+        distBody:      document.getElementById("distBody"),
+        outDistance:   document.getElementById("outDistance"),
+        outBase:       document.getElementById("outBase"),
+        payBtn:        document.getElementById("payBtn"),
+        payError:      document.getElementById("payError"),
+        ticketSection: document.getElementById("ticketSection"),
+        ticketNode:    document.getElementById("ticketNode"),
+        savePngBtn:    document.getElementById("savePngBtn"),
+        saveTxtBtn:    document.getElementById("saveTxtBtn"),
+        ticketId:      document.getElementById("ticketId"),
+        ticketPaidAt:  document.getElementById("ticketPaidAt"),
+        tRoute:        document.getElementById("tRoute"),
+        tDate:         document.getElementById("tDate"),
+        tWagon:        document.getElementById("tWagon"),
+        tDistance:     document.getElementById("tDistance"),
+        tPrice:        document.getElementById("tPrice"),
+        tServices:     document.getElementById("tServices"),
+      };
+
+      const MINSK = { city: "Минск", lat: 53.9006, lon: 27.559 };
+
+      const DESTINATIONS = [
+        { group: "Беларусь", country: "BY", city: "Брест", lat: 52.0976, lon: 23.7341, aliases: ["брест"] },
+        { group: "Беларусь", country: "BY", city: "Витебск", lat: 55.1904, lon: 30.2049, aliases: ["витебск"] },
+        { group: "Беларусь", country: "BY", city: "Гомель", lat: 52.4453, lon: 30.9842, aliases: ["гомель"] },
+        { group: "Беларусь", country: "BY", city: "Гродно", lat: 53.6694, lon: 23.8131, aliases: ["гродно"] },
+        { group: "Беларусь", country: "BY", city: "Могилёв", lat: 53.8945, lon: 30.3307, aliases: ["могилев", "могилёв"] },
+
+        { group: "Россия", country: "RU", city: "Москва", lat: 55.7558, lon: 37.6173, aliases: ["москва"] },
+        { group: "Россия", country: "RU", city: "Санкт‑Петербург", lat: 59.9311, lon: 30.3609,
+          aliases: ["санкт петербург", "санкт-петербург", "спб", "питер"] },
+        { group: "Россия", country: "RU", city: "Казань", lat: 55.7961, lon: 49.1064, aliases: ["казань"] },
+        { group: "Россия", country: "RU", city: "Нижний Новгород", lat: 56.2965, lon: 43.9361,
+          aliases: ["нижний новгород", "н новгород", "нижний"] },
+        { group: "Россия", country: "RU", city: "Самара", lat: 53.1959, lon: 50.1008, aliases: ["самара"] },
+        { group: "Россия", country: "RU", city: "Екатеринбург", lat: 56.8389, lon: 60.6057,
+          aliases: ["екатеринбург", "екб"] },
+        { group: "Россия", country: "RU", city: "Новосибирск", lat: 55.0084, lon: 82.9357,
+          aliases: ["новосибирск", "нск"] },
+        { group: "Россия", country: "RU", city: "Ростов‑на‑Дону", lat: 47.2357, lon: 39.7015,
+          aliases: ["ростов на дону", "ростов-на-дону", "ростов"] },
+        { group: "Россия", country: "RU", city: "Краснодар", lat: 45.0355, lon: 38.9753, aliases: ["краснодар"] },
+        { group: "Россия", country: "RU", city: "Воронеж", lat: 51.6608, lon: 39.2003, aliases: ["воронеж"] },
+      ];
+
+      function normalizeCity(s) {
+        return (s || "")
+          .toLowerCase()
+          .replaceAll("ё", "е")
+          .replace(/[-‑–—]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function haversineKm(a, b) {
+        const R = 6371;
+        const toRad = (x) => (x * Math.PI) / 180;
+        const dLat = toRad(b.lat - a.lat);
+        const dLon = toRad(b.lon - a.lon);
+        const lat1 = toRad(a.lat);
+        const lat2 = toRad(b.lat);
+        const h =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 2 * R * Math.asin(Math.sqrt(h));
+      }
+
+      const DEST_BY_NORM = new Map();
+      for (const d of DESTINATIONS) {
+        const norms = new Set([normalizeCity(d.city), ...(d.aliases || []).map(normalizeCity)]);
+        for (const n of norms) DEST_BY_NORM.set(n, d);
+      }
+
+      function getDistanceFromMinskKm(toCity) {
+        const dest = DEST_BY_NORM.get(normalizeCity(toCity));
+        if (!dest) return null;
+        return haversineKm(MINSK, dest);
+      }
+
+      function renderDistanceTable() {
+        const groups = new Map();
+        for (const d of DESTINATIONS) {
+          if (!groups.has(d.group)) groups.set(d.group, []);
+          groups.get(d.group).push(d);
+        }
+        for (const [, arr] of groups) arr.sort((a, b) => a.city.localeCompare(b.city, "ru"));
+
+        const frag = document.createDocumentFragment();
+
+        for (const [group, arr] of groups) {
+          const gtr = document.createElement("tr");
+          gtr.className = "groupRow";
+          const gtd = document.createElement("td");
+          gtd.colSpan = 3;
+          gtd.textContent = group;
+          gtr.appendChild(gtd);
+          frag.appendChild(gtr);
+
+          for (const d of arr) {
+            const km = Math.round(haversineKm(MINSK, d));
+            const tr = document.createElement("tr");
+
+            const tdCity = document.createElement("td");
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "cityBtn";
+            btn.dataset.city = d.city;
+            btn.textContent = d.city;
+            tdCity.appendChild(btn);
+
+            const tdCountry = document.createElement("td");
+            tdCountry.textContent = d.country;
+
+            const tdKm = document.createElement("td");
+            tdKm.textContent = `${km}`;
+
+            tr.appendChild(tdCity);
+            tr.appendChild(tdCountry);
+            tr.appendChild(tdKm);
+            frag.appendChild(tr);
+          }
+        }
+
+        els.distBody.replaceChildren(frag);
+      }
+
+      els.distBody.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-city]");
+        if (!btn) return;
+        if (!fromInput.value.trim()) fromInput.value = "Минск";
+        toInput.value = btn.dataset.city || "";
+        toInput.focus();
+        update();
+      });
+
+      function update() {
+        const from = fromInput.value.trim();
+        const to   = toInput.value.trim();
+
+        outRoute.textContent = (from || "?") + " → " + (to || "?");
+
+        const fromIsMinsk = normalizeCity(from) === normalizeCity(MINSK.city);
+        const km = fromIsMinsk ? getDistanceFromMinskKm(to) : null;
+
+        if (km !== null) {
+          els.outDistance.textContent = "≈ " + Math.round(km) + " км";
+        } else if (from && !fromIsMinsk) {
+          els.outDistance.textContent = "— (доступно только из Минска)";
+        } else {
+          els.outDistance.textContent = "—";
+        }
+
+        const basePrice = km !== null
+          ? Math.max(MIN_BASE_PRICE, km * RATE_PER_KM)
+          : BASE_PRICE_FALLBACK;
+        els.outBase.textContent = Math.round(basePrice) + " ₽";
+
+        const mult = Number(wagon.value);
+        const name = wagon.selectedOptions[0].dataset.name;
+        outWagon.textContent = name + " (×" + mult + ")";
+
+        let servicesSum    = 0;
+        const servicesList = [];
+        services.forEach(function (s) {
+          if (!s.checked) return;
+          const price = Number(s.dataset.price);
+          servicesSum += price;
+          servicesList.push(s.dataset.name + " — " + price + " ₽");
+        });
+        outServices.textContent = servicesList.join(", ") || "—";
+
+        outDate.textContent = dateInput.value || "—";
+
+        const total = basePrice * mult + servicesSum;
+        outTotal.textContent = Math.round(total) + " ₽";
+      }
+
+      dateInput.addEventListener("change", function () {
+        dateText.textContent = dateInput.value || "не выбрана";
+        update();
+      });
+
+      const dateBtn = document.getElementById("dateBtn");
+      dateBtn.addEventListener("click", () => {
+        if (typeof dateInput.showPicker === "function") {
+          dateInput.showPicker();
+        } else {
+          dateInput.focus();
+          dateInput.click();
+        }
+      });
+
+      function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      let ticketCounter = 1;
+      let currentTicketId = "";
+
+      function collectTicketData(customId) {
+        const from = fromInput.value.trim();
+        const to   = toInput.value.trim();
+        const date = dateInput.value || null;
+
+        const fromIsMinsk = normalizeCity(from) === normalizeCity(MINSK.city);
+        const kmRaw = fromIsMinsk ? getDistanceFromMinskKm(to) : null;
+        const distance = kmRaw !== null ? Math.round(kmRaw) : null;
+
+        const basePrice = kmRaw !== null
+          ? Math.max(MIN_BASE_PRICE, kmRaw * RATE_PER_KM)
+          : BASE_PRICE_FALLBACK;
+
+        const mult = Number(wagon.value);
+        const wagonName = wagon.selectedOptions[0].dataset.name;
+
+        let servicesSum = 0;
+        const servicesList = [];
+        document.querySelectorAll(".service").forEach((s) => {
+          if (!s.checked) return;
+          const price = Number(s.dataset.price);
+          servicesSum += price;
+          servicesList.push(`${s.dataset.name} — ${price} ₽`);
+        });
+
+        const price = Math.round(basePrice * mult + servicesSum);
+
+        return {
+          ticketId: customId || "Черновик",
+          paidAt:   new Date().toLocaleString("ru-RU"),
+          route:    `${from} → ${to}`,
+          date:     date || "—",
+          wagon:    `${wagonName} (×${mult})`,
+          distance: distance !== null ? `≈ ${distance} км` : "—",
+          services: servicesList.length ? servicesList.join(", ") : "—",
+          price:    `${price} ₽`,
+        };
+      }
+
+      function showTicket(data) {
+        els.ticketSection.hidden = false;
+        els.ticketId.textContent     = data.ticketId;
+        els.ticketPaidAt.textContent = `Оплачено: ${data.paidAt}`;
+        els.tRoute.textContent       = `Маршрут: ${data.route}`;
+        els.tDate.textContent        = `Дата: ${data.date}`;
+        els.tWagon.textContent       = `Тип вагона: ${data.wagon}`;
+        els.tDistance.textContent    = `Расстояние: ${data.distance}`;
+        els.tPrice.textContent       = `Стоимость: ${data.price}`;
+        els.tServices.textContent    = `Услуги: ${data.services}`;
+      }
+
+      function buildTicketText(data) {
+        return [
+          `${data.ticketId}`,
+          `Оплачено: ${data.paidAt}`,
+          ``,
+          `Маршрут: ${data.route}`,
+          `Дата: ${data.date}`,
+          `Тип вагона: ${data.wagon}`,
+          `Расстояние: ${data.distance}`,
+          `Услуги: ${data.services}`,
+          `Стоимость: ${data.price}`,
+        ].join("\n");
+      }
+
+      els.saveTxtBtn.addEventListener("click", () => {
+        const data = collectTicketData(currentTicketId);
+        const text = buildTicketText(data);
+        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        downloadBlob(blob, `Билет_${ticketCounter - 1}.txt`);
+      });
+
+      function renderTicketToCanvas(data) {
+        const w = 1100;
+        const h = 620;
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+
+      
+        ctx.fillStyle = "#0b1220";
+        ctx.fillRect(0, 0, w, h);
+
+        
+        const x = 50, y = 50, cw = w - 100, ch = h - 100, r = 22;
+        ctx.fillStyle = "rgba(17, 26, 46, 0.95)";
+        ctx.strokeStyle = "rgba(106, 167, 255, 0.55)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + cw, y, x + cw, y + ch, r);
+        ctx.arcTo(x + cw, y + ch, x, y + ch, r);
+        ctx.arcTo(x, y + ch, x, y, r);
+        ctx.arcTo(x, y, x + cw, y, r);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        
+
+        
+        const pad = 34;
+        let ty = y + pad + 6;
+
+        ctx.fillStyle = "#a9b7df";
+        ctx.font = "600 22px system-ui, Segoe UI, Arial";
+        ctx.fillText("Электронный билет", x + pad, ty);
+        ty += 34;
+
+        ctx.fillStyle = "#e8eefc";
+        ctx.font = "800 34px system-ui, Segoe UI, Arial";
+        ctx.fillText(data.ticketId, x + pad, ty);
+
+        ctx.fillStyle = "#a9b7df";
+        ctx.font = "500 18px system-ui, Segoe UI, Arial";
+        const paidW = ctx.measureText(data.paidAt).width;
+        ctx.fillText(data.paidAt, x + cw - pad - paidW, y + pad + 36);
+
+      
+        ty += 44;
+        ctx.fillStyle = "#e8eefc";
+        ctx.font = "800 30px system-ui, Segoe UI, Arial";
+        ctx.fillText(data.route, x + pad, ty);
+
+        
+        const boxY = ty + 26;
+        const boxX = x + pad;
+        
+        
+        const boxW = cw - pad * 2 - 160; 
+        const boxH = ch - (boxY - y) - pad;
+
+        
+        const qx = x + cw - pad - 120;
+        const qy = boxY;
+        ctx.strokeStyle = "rgba(34, 48, 84, 1)";
+        ctx.fillStyle = "rgba(9, 14, 28, 0.55)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(qx, qy, 120, 120, 18);
+        ctx.fill();
+        ctx.stroke();
+       
+
+        function drawKV(k, v, col, row) {
+          const gap = 16;
+          const cellW = (boxW - gap) / 2;
+          const cellH = 92;
+          const cx = boxX + col * (cellW + gap);
+          const cy = boxY + row * (cellH + gap);
+
+          ctx.fillStyle = "rgba(9, 14, 28, 0.45)";
+          ctx.strokeStyle = "rgba(34, 48, 84, 1)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(cx, cy, cellW, cellH, 18);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#a9b7df";
+          ctx.font = "600 16px system-ui, Segoe UI, Arial";
+          ctx.fillText(k, cx + 18, cy + 30);
+
+          ctx.fillStyle = "#e8eefc";
+          ctx.font = "800 20px system-ui, Segoe UI, Arial";
+          ctx.fillText(v, cx + 18, cy + 62);
+        }
+
+        drawKV("Дата",       data.date,     0, 0);
+        drawKV("Тип вагона", data.wagon,    1, 0);
+        drawKV("Расстояние", data.distance, 0, 1);
+        drawKV("Стоимость",  data.price,    1, 1);
+
+        // services full width
+        const sx = boxX;
+        const sy = boxY + (92 + 16) * 2;
+        const sw = boxW;
+        const sh = Math.max(96, boxH - (92 + 16) * 2);
+        ctx.fillStyle = "rgba(9, 14, 28, 0.45)";
+        ctx.strokeStyle = "rgba(34, 48, 84, 1)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(sx, sy, sw, sh, 18);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#a9b7df";
+        ctx.font = "600 16px system-ui, Segoe UI, Arial";
+        ctx.fillText("Услуги", sx + 18, sy + 30);
+        ctx.fillStyle = "#e8eefc";
+        ctx.font = "700 18px system-ui, Segoe UI, Arial";
+
+        const maxWidth = sw - 36;
+        const words = String(data.services || "—").split(" ");
+        let line = "";
+        let yy = sy + 60;
+        for (const word of words) {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth) {
+            ctx.fillText(line, sx + 18, yy);
+            line = word;
+            yy += 26;
+          } else {
+            line = test;
+          }
+        }
+        if (line) ctx.fillText(line, sx + 18, yy);
+
+        return canvas;
+      }
+
+      els.payBtn.addEventListener("click", () => {
+        const from = fromInput.value.trim();
+        const to   = toInput.value.trim();
+        const dateIso = dateInput.value;
+
+        if (!from || !to || !dateIso) {
+          els.payError.classList.add("show");
+          return;
+        }
+        els.payError.classList.remove("show");
+
+        currentTicketId = `Билет № ${ticketCounter}`;
+        ticketCounter++;
+
+        const data = collectTicketData(currentTicketId);
+        showTicket(data);
+        els.ticketSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+
+      els.savePngBtn.addEventListener("click", () => {
+        const data = collectTicketData(currentTicketId);
+        const canvas = renderTicketToCanvas(data);
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          downloadBlob(blob, `Билет_${ticketCounter - 1}.png`);
+        }, "image/png");
+      });
+
+      form.addEventListener("input", update);
+      form.addEventListener("change", update);
+
+      renderDistanceTable();
+      update();
+    </script>
+  </body>
+</html>
